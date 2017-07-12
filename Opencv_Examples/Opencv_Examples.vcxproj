@@ -76,6 +76,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>D:\opencv\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\opencv\opencv\build\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -95,7 +97,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_highgui320d.lib;opencv_imgproc320d.lib;opencv_features2d320d.lib;opencv_core320d.lib;opencv_calib3d320d.lib;opencv_video320d.lib;opencv_shape320d.lib;opencv_videoio320d.lib;opencv_objdetect320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_highgui320d.lib;opencv_imgproc320d.lib;opencv_features2d320d.lib;opencv_core320d.lib;opencv_calib3d320d.lib;opencv_video320d.lib;opencv_shape320d.lib;opencv_videoio320d.lib;opencv_objdetect320d.lib;opencv_photo320d.lib;opencv_flann320d.lib;opencv_imgcodecs320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -104,12 +106,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opencv_objdetect320d.lib;opencv_highgui320d.lib;opencv_videoio320d.lib;opencv_shape320d.lib;opencv_imgproc320d.lib;opencv_core320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -153,6 +156,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="..\data\haarcascade_eye.xml" />
+    <Xml Include="..\data\haarcascade_eye_tree_eyeglasses.xml" />
+    <Xml Include="..\data\haarcascade_frontalcatface.xml" />
+    <Xml Include="..\data\haarcascade_frontalface_alt.xml" />
+    <Xml Include="..\data\haarcascade_head.xml" />
+    <Xml Include="..\data\haarcascade_licence_plate_rus_16stages.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -24,4 +24,24 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Xml Include="..\data\haarcascade_eye.xml">
+      <Filter>資源檔</Filter>
+    </Xml>
+    <Xml Include="..\data\haarcascade_frontalcatface.xml">
+      <Filter>資源檔</Filter>
+    </Xml>
+    <Xml Include="..\data\haarcascade_head.xml">
+      <Filter>資源檔</Filter>
+    </Xml>
+    <Xml Include="..\data\haarcascade_eye_tree_eyeglasses.xml">
+      <Filter>資源檔</Filter>
+    </Xml>
+    <Xml Include="..\data\haarcascade_frontalface_alt.xml">
+      <Filter>資源檔</Filter>
+    </Xml>
+    <Xml Include="..\data\haarcascade_licence_plate_rus_16stages.xml">
+      <Filter>資源檔</Filter>
+    </Xml>
+  </ItemGroup>
 </Project>
