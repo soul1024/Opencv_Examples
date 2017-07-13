@@ -2,15 +2,14 @@
 #include "main.h"
 using namespace cv;
 using namespace std;
+using namespace cv::ml;
 
-void Face_detectAndDisplay(Mat frame);
-void Plate_dectecAndDisplay(Mat frame);
-void Face_detectAndDisplay_thirdpart(Mat frame);
+
 /** Global variables */
 String face_cascade_name = "../data/haarcascade_frontalface_alt.xml";
 String eyes_cascade_name = "../data/haarcascade_eye.xml";
 String head_cascade_name = "../data/haarcascade_head.xml";
-String plate_cascade_name = "../data/haarcascade_licence_plate_eu.xml";
+String plate_cascade_name = "../data/haarcascade_licence_plate_us.xml";
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 CascadeClassifier head_cascade;
@@ -18,6 +17,26 @@ CascadeClassifier plate_cascade;
 string window_name = "Capture - Face detection";
 RNG rng(12345);
 //下載　https://github.com/opencv/opencv/tree/master/data/haarcascades
+
+const int train_samples = 1;
+const int classes = 10;
+const int sizex = 20;
+const int sizey = 30;
+const int ImageSize = sizex * sizey;
+char pathToImages[] = "../data/pictures";
+
+//excercises
+void Face_detectAndDisplay();
+void Plate_dectecAndDisplay();
+void Face_detectAndDisplay_thirdpart();
+void AutoRegister();
+void Sift();
+void Bgfg_segm();
+void ConnectedComponent();
+void PreProcessImage(Mat *inImage, Mat *outImage, int sizex, int sizey);
+void LearnFromImages(CvMat* trainData, CvMat* trainClasses);
+void RunSelfTest(Ptr<KNearest> knn2);
+void AnalyseImage(Ptr<KNearest> knearest, Mat frame);
 
 
 int main() {
@@ -42,99 +61,141 @@ int main() {
 		printf("--(!)Error loading\n");
 		return -1;
 	}
-	VideoCapture cap(0);             //開啟攝影機
-	if (!cap.isOpened()) return -1;   //確認攝影機打開
-	Mat frame;                       //用矩陣紀錄抓取的每張frame
-	for (;;) {
-		if (cap.isOpened())
-		{
-			//frame=cvQueryFrame(cam);
-			cap >> frame;   //把取得的影像放置到矩陣中
-			if (!frame.empty())
-			{
-				Plate_dectecAndDisplay(frame);
-			}
-			else
-			{
-				printf(" --(!) No captured frame -- Break!"); break;
-			}
+	namedWindow("img", WINDOW_AUTOSIZE);
 
-			if (waitKey(30) == 27) break;  //按鍵就離開程式
-		}
-	}
+
+	//Bgfg_segm();
+	//AutoRegister();
+	//Sift();
+	//ConnectedComponent();
+	Plate_dectecAndDisplay();
 	return 0;
 }
 
-void Face_detectAndDisplay(Mat frame)
+void Face_detectAndDisplay()
 {
-	vector<Rect>faces;
-	vector<Rect>heads;
-	Mat frame_gray;
-	cvtColor(frame, frame_gray, CV_BGR2GRAY);
-	equalizeHist(frame_gray, frame_gray);
-	face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0, Size(30, 30));
-	head_cascade.detectMultiScale(frame_gray, heads, 1.1, 2, 0, Size(30, 40));
-	for (int i = 0; i < faces.size(); i++)
+	VideoCapture cap(0);             //開啟攝影機
+	if (!cap.isOpened()) return ;   //確認攝影機打開
+	Mat frame;                       //用矩陣紀錄抓取的每張frame
+	while (true)
 	{
-		//rectangle(frame, faces[i], Scalar(0, 0, 255), 2);
-	}
-	for (int i = 0; i < heads.size(); i++)
-	{
-		rectangle(frame, heads[i], Scalar(0, 255, 0), 2);
-	}
-	//處理重疊	
-	/*vector<Rect> ans;
-	for (int i = 0; i < faces.size(); i++)
-	{
+		cap >> frame;
+		vector<Rect>faces;
+		//vector<Rect>heads;
+		Mat frame_gray;
+		cvtColor(frame, frame_gray, CV_BGR2GRAY);
+		equalizeHist(frame_gray, frame_gray);
+		face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0, Size(30, 30));
+		//head_cascade.detectMultiScale(frame_gray, heads, 1.1, 2, 0, Size(30, 40));
+		//for (int i = 0; i < faces.size(); i++)
+		//{
+		//	//rectangle(frame, faces[i], Scalar(0, 0, 255), 2);
+		//}
+		//for (int i = 0; i < heads.size(); i++)
+		//{
+		//	rectangle(frame, heads[i], Scalar(0, 255, 0), 2);
+		//}
+		//處理重疊	
+		/*vector<Rect> ans;
+		for (int i = 0; i < faces.size(); i++)
+		{
 		for (int j = 0; j < heads.size(); j++)
 		{
-			Rect Intersection = faces[i] & heads[j];
-			if (Intersection.area() > faces[i].area() / 2 && Intersection.area() > heads[j].area() / 2)
-			{
+		Rect Intersection = faces[i] & heads[j];
+		if (Intersection.area() > faces[i].area() / 2 && Intersection.area() > heads[j].area() / 2)
+		{
 
-			}
-			else
+		}
+		else
+		{
+		}
+		}
+		}*/
+		for (int i = 0; i<faces.size(); i++)
+		{
+			Point center(faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5);
+			ellipse(frame, center, Size(faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
+			Mat faceROI = frame_gray(faces[i]);
+			std::vector<Rect> eyes;
+			//-- In each face, detect eyes
+			eyes_cascade.detectMultiScale(faceROI, eyes, 1.1, 2, 0, Size(30, 30));
+			for (int j = 0; j < eyes.size(); j++)
 			{
+				Point center(faces[i].x + eyes[j].x + eyes[j].width*0.5, faces[i].y + eyes[j].y + eyes[j].height*0.5);
+				int radius = cvRound((eyes[j].width + eyes[j].height)*0.25);
+				circle(frame, center, radius, Scalar(255, 0, 0), 4, 8, 0);
+			}
+			//if (eyes.size() > 0)
+			{
+				char _text[100] = { 0 };
+				String text = _itoa(faces.size(), _text, 10);
+				text = "人數:" + text;
+				putText(frame, text, Point(0, 15), CV_FONT_ITALIC, 2.0, Scalar(0, 0, 255), 2);
 			}
 		}
-	}*/
-	char _text[100] = { 0 };
-	_itoa(/*faces.size() + */heads.size(), _text, 10);
-	String text = _text;
-	putText(frame, text, Point(frame.cols / 2, frame.rows / 2), CV_FONT_ITALIC, 2.0, Scalar(0, 0, 255), 2);
-	//for (int i = 0; i<faces.size(); i++)
-	//{
-	//	Point center(faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5);
-	//	ellipse(frame, center, Size(faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
-	//	Mat faceROI = frame_gray(faces[i]);
-	//	std::vector<Rect> eyes;
-	//	//-- In each face, detect eyes
-	//	eyes_cascade.detectMultiScale(faceROI, eyes, 1.1, 2, 0, Size(30, 30));
-	//	for (int j = 0; j < eyes.size(); j++)
-	//	{
-	//		Point center(faces[i].x + eyes[j].x + eyes[j].width*0.5, faces[i].y + eyes[j].y + eyes[j].height*0.5);
-	//		int radius = cvRound((eyes[j].width + eyes[j].height)*0.25);
-	//		circle(frame, center, radius, Scalar(255, 0, 0), 4, 8, 0);
-	//	}
-	//}
-	imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
-
+		imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
+		if (waitKey(30) == 27) break;  //按鍵就離開程式
+	}
 }
 
-void Plate_dectecAndDisplay(Mat frame)
+void Plate_dectecAndDisplay()
 {
-	vector<Rect>plates;
-	Mat frame_gray;
-	cvtColor(frame, frame_gray, CV_BGR2GRAY);
-	equalizeHist(frame_gray, frame_gray);
-	plate_cascade.detectMultiScale(frame_gray, plates, 1.1, 2, 0, Size(30, 30));
-	for (int i = 0; i<plates.size(); i++)
+	VideoCapture cap(0);             //開啟攝影機
+	if (!cap.isOpened()) return;   //確認攝影機打開
+	Mat frame;                       //用矩陣紀錄抓取的每張frame
+	CvMat* trainData = cvCreateMat(classes * train_samples, ImageSize, CV_32FC1);
+	CvMat* trainClasses = cvCreateMat(classes * train_samples, 1, CV_32FC1);
+
+	//namedWindow("single", CV_WINDOW_AUTOSIZE);
+	//namedWindow("all", CV_WINDOW_AUTOSIZE);
+
+	LearnFromImages(trainData, trainClasses);
+
+	Mat matTrainFeatures = cvarrToMat(trainData);
+	Mat matTrainLabels = cvarrToMat(trainClasses);
+
+
+	Ptr<TrainData> trainingData;
+	Ptr<KNearest> kclassifier = KNearest::create();
+
+	trainingData = TrainData::create(matTrainFeatures,
+		SampleTypes::ROW_SAMPLE, matTrainLabels);
+	kclassifier->setIsClassifier(true);
+	kclassifier->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
+	kclassifier->setDefaultK(1);
+	kclassifier->train(trainingData);
+
+
+	RunSelfTest(kclassifier);
+
+	cout << "losgehts\n";
+
+	
+	while (true)
 	{
-		rectangle(frame, plates[i], Scalar(0, 0, 255), 2);
-		//Point center(plates[i].x + plates[i].width*0.5, plates[i].y + plates[i].height*0.5);
-		//ellipse(frame, center, Size(plates[i].width*0.5, plates[i].height*0.5), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
+		cap >> frame;
+		vector<Rect>plates;
+		Mat frame_gray;
+		cvtColor(frame, frame_gray, CV_BGR2GRAY);
+		equalizeHist(frame_gray, frame_gray);
+		plate_cascade.detectMultiScale(frame_gray, plates, 1.1, 2, 0, Size(30, 30));
+		for (int i = 0; i < plates.size(); i++)
+		{
+			rectangle(frame, plates[i], Scalar(0, 0, 255), 2);
+		}
+		imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
+
+		//
+		for (int i = 0; i < plates.size(); i++) {
+			//roi
+			Mat plate = frame(plates[i]);
+			//
+			AnalyseImage(kclassifier, plate);
+		}
+
+		if (waitKey(30) == 27) break;  //按鍵就離開程式
+
 	}
-	imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
 }
 
 //void Face_detectanddisplay_thirdpart(Mat frame)
@@ -382,6 +443,336 @@ void Plate_dectecAndDisplay(Mat frame)
 //		imwrite(buf, testImg);
 //	}*/
 //}
+
+void AutoRegister()
+{
+	VideoCapture cap(0);
+	if (!cap.isOpened()) return;
+	Mat frame;
+	cap >> frame;
+
+	Mat gray(frame.size(), CV_8UC1);
+	cvtColor(frame, gray, COLOR_BGR2GRAY);
+
+	Mat Foreground(frame.size(), CV_8UC1);
+	Mat Background(frame.size(), CV_8UC1);
+
+	Mat gray32f(frame.size(), CV_32FC1);
+	Mat Foreground32f(frame.size(), CV_32FC1);
+	Mat Background32f(frame.size(), CV_32FC1);
+
+	gray.convertTo(Background32f, CV_32F);
+
+	while (true)
+	{
+		cap >> frame;
+
+		cvtColor(frame, gray, COLOR_BGR2GRAY);
+		imshow("foreground", gray);
+
+		gray.convertTo(gray32f, CV_32F);
+
+		absdiff(gray32f, Background32f, Foreground32f);
+		threshold(Foreground32f, Foreground, 30, 255, THRESH_BINARY);
+		accumulateWeighted(gray32f, Background32f, 0.09);
+		float flmean = mean(Foreground)[0];
+		if (flmean > 128)
+		{
+			putText(Foreground, "WARNING", Point(Foreground.cols / 2, Foreground.rows / 2), CV_FONT_ITALIC, 1, Scalar(0, 0, 255));
+		}
+
+		Background32f.convertTo(Background, CV_8U);
+
+		imshow("background", Background);
+		imshow("Binary Result", Foreground);
+
+		if (waitKey(10) == 27)  break;
+	}
+}
+
+void Sift()
+{
+	//Mat img_1 = imread("../data/pictures/noodle.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	//Mat img_2 = imread("../data/pictures/noodle2.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+
+	//if (!img_1.data || !img_2.data)                                                    //如果數據為空
+	//{
+	//	std::cout << " --(!) Error reading images " << std::endl; return ;
+	//}
+
+
+
+	////-- Step 1: Detect the keypoints using SURF Detector     //第一步，用SIFT算子檢測關鍵點
+	//int minHessian = 400;
+
+	//Ptr<Feature2D> Surf;
+	//Surf = SUR
+	//SurfFeatureDetector detector(minHessian);
+	//std::vector<KeyPoint> keypoints_1, keypoints_2;
+
+	//detector.detect(img_1, keypoints_1);
+	//detector.detect(img_2, keypoints_2);
+
+	////-- Draw keypoints  //在圖像中畫出特徵點
+	//Mat img_keypoints_1; Mat img_keypoints_2;
+
+	//drawKeypoints(img_1, keypoints_1, img_keypoints_1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	//drawKeypoints(img_2, keypoints_2, img_keypoints_2, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+
+	////-- Show detected (drawn) keypoints
+	//imshow("Keypoints 1", img_keypoints_1);
+	//imshow("Keypoints 2", img_keypoints_2);
+
+	////計算特徵
+	//SurfDescriptorExtractor extractor;//定義對象
+
+	//Mat descriptors_1, descriptors_2;//存放特徵向量的舉陣
+
+	//extractor.compute(img_1, keypoints_1, descriptors_1);//計算特徵向量
+	//extractor.compute(img_2, keypoints_2, descriptors_2);
+
+	////-- Step 3: Matching descriptor vectors with a brute force matcher
+	//BFMatcher matcher(NORM_L2);
+	//std::vector< DMatch > matches;
+	//matcher.match(descriptors_1, descriptors_2, matches);
+
+	////-- Draw matches
+	//Mat img_matches;
+	//drawMatches(img_1, keypoints_1, img_2, keypoints_2, matches, img_matches);
+
+	////-- Show detected matches
+	//imshow("Matches", img_matches);
+}
+
+void Bgfg_segm()
+{
+	Mat frame;
+
+	VideoCapture cap;
+	cap.open(0);
+	cap >> frame;
+	Mat fg_img(frame.size(), frame.type());
+	Mat fg_mask;
+	bool update_bg_model = true;
+
+	/*Ptr<BackgroundSubtractor> bg_model = createBackgroundSubtractorKNN()
+		.dynamicCast<BackgroundSubtractor>();*/
+	Ptr<BackgroundSubtractor> bg_model = createBackgroundSubtractorMOG2()
+		.dynamicCast<BackgroundSubtractor>();
+
+	while (true)
+	{
+		cap >> frame;
+		bg_model->apply(frame, fg_mask, update_bg_model ? -1 : 0);
+
+		fg_img = Scalar::all(0);
+		frame.copyTo(fg_img, fg_mask);
+		Mat bg_img;
+		bg_model->getBackgroundImage(bg_img);
+
+		if (!bg_img.empty())
+			imshow("BG2", bg_img);
+
+		imshow("FG2", fg_img);
+		imshow("FG mask2", fg_mask);
+		if (waitKey(10) == 27) break;
+	}
+}
+
+
+void ConnectedComponent()
+{
+	VideoCapture cap;
+	Mat frame, gray, ThresholdImage;
+
+	cap.open(0);
+
+	while (true)
+	{
+		cap >> frame;
+		cvtColor(frame, gray, COLOR_BGR2GRAY);
+		threshold(gray, ThresholdImage, 30, 255, THRESH_BINARY);
+		Mat labelImage(frame.size(), CV_32S);
+		int nLabels = connectedComponents(ThresholdImage, labelImage, 8);
+		std::vector<Vec3b> colors(nLabels);
+		for (int label = 0; label < nLabels; ++label) {
+			colors[label] = Vec3b((rand() & 255), (rand() & 255), (rand() & 255));
+		}
+
+		Mat ResultImage(frame.size(), CV_8UC3);
+		for (int i = 0; i < ResultImage.rows; ++i) {
+			for (int j = 0; j < ResultImage.cols; ++j) {
+				int label = labelImage.at<int>(i, j);
+				Vec3b &pixel = ResultImage.at<Vec3b>(i, j);
+				pixel = colors[label];
+			}
+		}
+		imshow("labelImage", labelImage);
+		imshow("Image", frame);
+		imshow("Connected Components", ResultImage);
+		waitKey(1000);
+	}
+}
+
+void PreProcessImage(Mat *inImage, Mat *outImage, int sizex, int sizey)
+{
+	Mat grayImage, blurredImage, thresholdImage, contourImage, regionOfInterest;
+
+	vector<vector<Point> > contours;
+	cvtColor(*inImage, grayImage, COLOR_BGR2GRAY);
+	GaussianBlur(grayImage, blurredImage, Size(5, 5), 2, 2);
+	adaptiveThreshold(blurredImage, thresholdImage, 255, 1, 1, 11, 2);
+	thresholdImage.copyTo(contourImage);
+	findContours(contourImage, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+	int idx = 0;
+	size_t area = 0;
+	for (size_t i = 0; i < contours.size(); i++)
+	{
+		if (area < contours[i].size())
+		{
+			idx = i;
+			area = contours[i].size();
+		}
+	}
+
+	Rect rec = boundingRect(contours[idx]);
+
+	regionOfInterest = thresholdImage(rec);
+
+	//erode(regionOfInterest, regionOfInterest, )
+	equalizeHist(regionOfInterest, regionOfInterest);
+
+	resize(regionOfInterest, *outImage, Size(sizex, sizey));
+}
+
+void LearnFromImages(CvMat* trainData, CvMat* trainClasses)
+{
+	Mat img;
+	char file[255];
+	for (int i = 0; i < classes; i++)
+	{
+		sprintf(file, "%s/%d.png", pathToImages, i);
+		img.release();
+		img = imread(file, 1);
+		if (!img.data)
+		{
+			cout << "File " << file << " not found\n";
+			std::exit(1);
+		}
+		else
+		{
+			imshow("img", img);
+		}
+		Mat outfile;
+		PreProcessImage(&img, &outfile, sizex, sizey);
+		for (int n = 0; n < ImageSize; n++)
+		{
+			trainData->data.fl[i * ImageSize + n] = outfile.data[n];
+		}
+		trainClasses->data.fl[i] = i;
+	}
+
+}
+
+void RunSelfTest(Ptr<KNearest> knn2)
+{
+	Mat img;
+	Mat sample2(Size(ImageSize, 1), CV_32FC1);
+	// SelfTest
+	char file[255];
+	int z = 0;
+	while (z++ < 10)
+	{
+		int iSecret = rand() % 10;
+		//cout << iSecret;
+		sprintf(file, "%s/%d.png", pathToImages, iSecret);
+		img = imread(file, 1);
+		Mat stagedImage;
+		PreProcessImage(&img, &stagedImage, sizex, sizey);
+		for (int n = 0; n < ImageSize; n++)
+		{
+			//int x = n % sizex;
+			//int y = n / sizex;
+			sample2.at<float>(n) = stagedImage.data[n];
+		}
+		Mat matResult(0, 0, CV_32FC1);
+		float detectedClass = knn2->findNearest(sample2, knn2->getDefaultK(), matResult);
+		detectedClass = matResult.at<float>(0);
+		if (iSecret != (int)((detectedClass)))
+		{
+			cout << "Secret is " << iSecret << " guess answer is "
+				<< (int)((detectedClass)) << endl;
+			//exit(1);
+		}
+		else
+		{
+			cout << "Right Answer!! Is " << (int)((detectedClass)) << "\n";
+		}
+		imshow("single", img);
+		//waitKey(0);
+	}
+
+}
+
+void AnalyseImage(Ptr<KNearest> knearest, Mat image)
+{
+
+	Mat sample2(Size(ImageSize,1), CV_32FC1);
+
+	Mat gray, blur, thresh;
+
+	vector < vector<Point> > contours;
+	//std::string tPath = pathToImages;
+	//tPath.append("/buchstaben.png");
+	//image = imread(tPath, 1);
+
+	cv::cvtColor(image, gray, COLOR_BGR2GRAY);
+	GaussianBlur(gray, blur, Size(5, 5), 2, 2);
+	adaptiveThreshold(blur, thresh, 255, 1, 1, 11, 2);
+	findContours(thresh, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+	for (size_t i = 0; i < contours.size(); i++)
+	{
+		vector < Point > cnt = contours[i];
+		if (contourArea(cnt) > 50)
+		{
+			Rect rec = boundingRect(cnt);
+			if (rec.height > 28)
+			{
+				Mat roi = image(rec);
+				Mat stagedImage;
+				PreProcessImage(&roi, &stagedImage, sizex, sizey);
+				for (int n = 0; n < ImageSize; n++)
+				{
+					sample2.at<float>(n) = stagedImage.data[n];
+				}
+				Mat matResults(0, 0, CV_32FC1);
+				float result = knearest->findNearest(sample2, knearest->getDefaultK(), matResults);
+				rectangle(image, Point(rec.x, rec.y),
+					Point(rec.x + rec.width, rec.y + rec.height),
+					Scalar(0, 0, 255), 2);
+
+				//imshow("all", image);
+				cout << result << " ";
+
+				//imshow("single", stagedImage);
+				//waitKey(0);
+			}
+
+		}
+		
+	}
+	cout << "\n";
+	imshow("all", image);
+	waitKey(0);
+}
+
+
+
+
+
+
 
 
 //#include "opencv2/video/tracking.hpp"

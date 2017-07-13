@@ -44,4 +44,42 @@
       <Filter>資源檔</Filter>
     </Xml>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\data\pictures\noodle.jpg">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\noodle2.jpg">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\0.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\1.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\2.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\3.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\4.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\5.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\6.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\7.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\8.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\9.png">
+      <Filter>資源檔</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

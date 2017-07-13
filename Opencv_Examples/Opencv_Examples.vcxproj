@@ -97,7 +97,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_highgui320d.lib;opencv_imgproc320d.lib;opencv_features2d320d.lib;opencv_core320d.lib;opencv_calib3d320d.lib;opencv_video320d.lib;opencv_shape320d.lib;opencv_videoio320d.lib;opencv_objdetect320d.lib;opencv_photo320d.lib;opencv_flann320d.lib;opencv_imgcodecs320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_highgui320d.lib;opencv_imgproc320d.lib;opencv_features2d320d.lib;opencv_core320d.lib;opencv_calib3d320d.lib;opencv_video320d.lib;opencv_shape320d.lib;opencv_videoio320d.lib;opencv_objdetect320d.lib;opencv_photo320d.lib;opencv_flann320d.lib;opencv_imgcodecs320d.lib;opencv_ml320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -164,6 +164,20 @@
     <Xml Include="..\data\haarcascade_frontalface_alt.xml" />
     <Xml Include="..\data\haarcascade_head.xml" />
     <Xml Include="..\data\haarcascade_licence_plate_rus_16stages.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\data\pictures\0.png" />
+    <Image Include="..\data\pictures\1.png" />
+    <Image Include="..\data\pictures\2.png" />
+    <Image Include="..\data\pictures\3.png" />
+    <Image Include="..\data\pictures\4.png" />
+    <Image Include="..\data\pictures\5.png" />
+    <Image Include="..\data\pictures\6.png" />
+    <Image Include="..\data\pictures\7.png" />
+    <Image Include="..\data\pictures\8.png" />
+    <Image Include="..\data\pictures\9.png" />
+    <Image Include="..\data\pictures\noodle.jpg" />
+    <Image Include="..\data\pictures\noodle2.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
