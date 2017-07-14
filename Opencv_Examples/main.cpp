@@ -1,8 +1,9 @@
 ﻿#include <iostream>
+#include <vector>
 #include "main.h"
 using namespace cv;
-using namespace std;
 using namespace cv::ml;
+using namespace std;
 
 
 /** Global variables */
@@ -19,7 +20,7 @@ RNG rng(12345);
 //下載　https://github.com/opencv/opencv/tree/master/data/haarcascades
 
 const int train_samples = 1;
-const int classes = 10;
+const int classes = 36;
 const int sizex = 20;
 const int sizey = 30;
 const int ImageSize = sizex * sizey;
@@ -61,7 +62,7 @@ int main() {
 		printf("--(!)Error loading\n");
 		return -1;
 	}
-	namedWindow("img", WINDOW_AUTOSIZE);
+	//namedWindow("img", WINDOW_AUTOSIZE);
 
 
 	//Bgfg_segm();
@@ -140,6 +141,7 @@ void Face_detectAndDisplay()
 
 void Plate_dectecAndDisplay()
 {
+	//可以參考這裡 http://www.licenseplatesrecognition.com/how-lpr-works.html
 	VideoCapture cap(0);             //開啟攝影機
 	if (!cap.isOpened()) return;   //確認攝影機打開
 	Mat frame;                       //用矩陣紀錄抓取的每張frame
@@ -153,7 +155,6 @@ void Plate_dectecAndDisplay()
 
 	Mat matTrainFeatures = cvarrToMat(trainData);
 	Mat matTrainLabels = cvarrToMat(trainClasses);
-
 
 	Ptr<TrainData> trainingData;
 	Ptr<KNearest> kclassifier = KNearest::create();
@@ -181,7 +182,7 @@ void Plate_dectecAndDisplay()
 		plate_cascade.detectMultiScale(frame_gray, plates, 1.1, 2, 0, Size(30, 30));
 		for (int i = 0; i < plates.size(); i++)
 		{
-			rectangle(frame, plates[i], Scalar(0, 0, 255), 2);
+			//rectangle(frame, plates[i], Scalar(0, 0, 255), 2);
 		}
 		imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
 
@@ -652,7 +653,7 @@ void LearnFromImages(CvMat* trainData, CvMat* trainClasses)
 	char file[255];
 	for (int i = 0; i < classes; i++)
 	{
-		sprintf(file, "%s/%d.png", pathToImages, i);
+		sprintf(file, "%s/_%d.png", pathToImages, i);
 		img.release();
 		img = imread(file, 1);
 		if (!img.data)
@@ -662,7 +663,7 @@ void LearnFromImages(CvMat* trainData, CvMat* trainClasses)
 		}
 		else
 		{
-			imshow("img", img);
+			//imshow("img", img);
 		}
 		Mat outfile;
 		PreProcessImage(&img, &outfile, sizex, sizey);
@@ -682,11 +683,11 @@ void RunSelfTest(Ptr<KNearest> knn2)
 	// SelfTest
 	char file[255];
 	int z = 0;
-	while (z++ < 10)
+	while (z++ < 20)
 	{
-		int iSecret = rand() % 10;
+		int iSecret = rand() % 36;
 		//cout << iSecret;
-		sprintf(file, "%s/%d.png", pathToImages, iSecret);
+		sprintf(file, "%s/_%d.png", pathToImages, iSecret);
 		img = imread(file, 1);
 		Mat stagedImage;
 		PreProcessImage(&img, &stagedImage, sizex, sizey);
@@ -709,7 +710,7 @@ void RunSelfTest(Ptr<KNearest> knn2)
 		{
 			cout << "Right Answer!! Is " << (int)((detectedClass)) << "\n";
 		}
-		imshow("single", img);
+		//imshow("single", img);
 		//waitKey(0);
 	}
 
@@ -729,40 +730,175 @@ void AnalyseImage(Ptr<KNearest> knearest, Mat image)
 
 	cv::cvtColor(image, gray, COLOR_BGR2GRAY);
 	GaussianBlur(gray, blur, Size(5, 5), 2, 2);
-	adaptiveThreshold(blur, thresh, 255, 1, 1, 11, 2);
-	findContours(thresh, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+	adaptiveThreshold(blur, thresh, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 11, 0);
+	// calhist
+	/*int HistogramBins = 2;
+	float HistogramRange1[2] = { 0,256 };
+	const float *HistogramRange = { &HistogramRange1[0] };
+	Mat roi(blur.size(), CV_8UC1);
+	Mat Histogram1;
+	calcHist(&blur, 1, 0, roi, Histogram1, 1, &HistogramBins, &HistogramRange);*/
+	//取分界點
+	//float maxValue = 128;//Histogram1.at<float>(0, 0);
+	//threshold(blur, thresh, maxValue, 255, THRESH_BINARY | THRESH_OTSU);
+	imshow("look", thresh);
+	waitKey();
+	findContours(thresh, contours, CV_RETR_LIST, CHAIN_APPROX_SIMPLE);
 
-	for (size_t i = 0; i < contours.size(); i++)
-	{
+	vector < Rect > bigRects;
+	//濾掉太小的
+	for (size_t i = 0; i < contours.size(); i++) {
 		vector < Point > cnt = contours[i];
 		if (contourArea(cnt) > 50)
 		{
 			Rect rec = boundingRect(cnt);
 			if (rec.height > 28)
 			{
-				Mat roi = image(rec);
-				Mat stagedImage;
-				PreProcessImage(&roi, &stagedImage, sizex, sizey);
-				for (int n = 0; n < ImageSize; n++)
-				{
-					sample2.at<float>(n) = stagedImage.data[n];
-				}
-				Mat matResults(0, 0, CV_32FC1);
-				float result = knearest->findNearest(sample2, knearest->getDefaultK(), matResults);
-				rectangle(image, Point(rec.x, rec.y),
-					Point(rec.x + rec.width, rec.y + rec.height),
-					Scalar(0, 0, 255), 2);
-
-				//imshow("all", image);
-				cout << result << " ";
-
-				//imshow("single", stagedImage);
-				//waitKey(0);
+				bigRects.push_back(rec);
 			}
-
 		}
-		
 	}
+	//濾掉包含其他的	
+	vector < Rect > smallRects;
+	for (size_t i = 0; i < bigRects.size(); i++) {
+		bool bHaveInclude = false;
+		for (size_t j = 0; j < bigRects.size(); j++) {
+			if (i != j) {
+				Rect unionRect = bigRects[i] | bigRects[j];
+				if (unionRect == bigRects[i]) {
+					bHaveInclude = true;
+					break;
+				}
+			}
+		}
+		if (!bHaveInclude) {
+			smallRects.push_back(bigRects[i]);
+		}
+	}
+	//x排序
+	for (size_t i = 0; i < smallRects.size(); i++) {
+		double minVal = smallRects[i].x;
+		size_t swapIndex = i;
+		for (size_t j = i+1; j < smallRects.size(); j++)
+		{
+			if (smallRects[j].x < minVal) {
+				minVal = smallRects[j].x;
+				swapIndex = j;
+			}
+		}
+		if (swapIndex >= 0 && swapIndex != i) {
+			//swap
+			Rect temp = smallRects[i];
+			smallRects[i] = smallRects[swapIndex];
+			smallRects[swapIndex] = temp;
+		}
+	}
+	
+	//濾掉誤判的
+	vector < Rect > workRects;
+	for (size_t i = 0; i < smallRects.size(); i++) {
+		if (i == 0 || i == smallRects.size() - 1) {
+			workRects.push_back(smallRects[i]);
+		}
+		else {
+			Rect Left = smallRects[i] & smallRects[i - 1];
+			Rect Right = smallRects[i] & smallRects[i + 1];
+			int TopY = smallRects[i].y;
+			int BottomY = TopY - smallRects[i].height;
+			int lTopY = smallRects[i-1].y;
+			int lBottomY = lTopY - smallRects[i-1].height;
+			int rTopY = smallRects[i+1].y;
+			int rBottomY = rTopY - smallRects[i+1].height;
+			if (Left.area() + Right.area() > smallRects[i].area() / 2)
+			{
+				//濾掉
+			}
+			else if (TopY < lBottomY && TopY < rBottomY){
+				//
+			}
+			else if (BottomY > lTopY && lBottomY > rTopY) {
+
+			}
+			else {
+				workRects.push_back(smallRects[i]);
+			}
+		}		
+	}
+	
+	bool bWordFirst = true;
+	for (size_t i = 0; i < workRects.size(); i++)
+	{
+		Rect rec = workRects[i];
+		Mat roi = image(rec);
+		Mat stagedImage;
+		PreProcessImage(&roi, &stagedImage, sizex, sizey);
+		for (int n = 0; n < ImageSize; n++)
+		{
+			sample2.at<float>(n) = stagedImage.data[n];
+		}
+		Mat matResults(0, 0, CV_32FC1);
+		float result = knearest->findNearest(sample2, knearest->getDefaultK(), matResults);
+		rectangle(image, Point(rec.x, rec.y),
+			Point(rec.x + rec.width, rec.y + rec.height),
+			Scalar(0, 0, 255), 2);
+
+		//imshow("all", image);
+		char c;
+		if (result >= 10)
+		{
+			if (i == 0) bWordFirst = true;
+			result += 55;
+		}
+		else {
+			if (i == 0) bWordFirst = false;
+			result += 48;
+		}
+		//
+		if (result == 68 || result == 79 || result == 85 )
+		{
+			if (bWordFirst && i > 2) {
+				result = 48; //數字0
+			}
+			else if(!bWordFirst && i < 4) {
+				result = 48;
+			}
+		}
+		cout << (char)result << " ";
+
+		//imshow("single", stagedImage);
+		//waitKey(0);
+	}
+	//for (size_t i = 0; i < contours.size(); i++)
+	//{
+	//	vector < Point > cnt = contours[i];
+	//	if (contourArea(cnt) > 50)
+	//	{
+	//		Rect rec = boundingRect(cnt);
+	//		if (rec.height > 28)
+	//		{
+	//			Mat roi = image(rec);
+	//			Mat stagedImage;
+	//			PreProcessImage(&roi, &stagedImage, sizex, sizey);
+	//			for (int n = 0; n < ImageSize; n++)
+	//			{
+	//				sample2.at<float>(n) = stagedImage.data[n];
+	//			}
+	//			Mat matResults(0, 0, CV_32FC1);
+	//			float result = knearest->findNearest(sample2, knearest->getDefaultK(), matResults);
+	//			rectangle(image, Point(rec.x, rec.y),
+	//				Point(rec.x + rec.width, rec.y + rec.height),
+	//				Scalar(0, 0, 255), 2);
+
+	//			//imshow("all", image);
+	//			cout << result << " ";
+
+	//			//imshow("single", stagedImage);
+	//			//waitKey(0);
+	//		}
+
+	//	}
+	//	
+	//}
 	cout << "\n";
 	imshow("all", image);
 	waitKey(0);

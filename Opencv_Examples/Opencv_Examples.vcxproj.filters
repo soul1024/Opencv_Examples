@@ -81,5 +81,113 @@
     <Image Include="..\data\pictures\9.png">
       <Filter>資源檔</Filter>
     </Image>
+    <Image Include="..\data\pictures\_15.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_16.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_17.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_18.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_19.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_20.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_21.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_22.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_23.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_24.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_25.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_26.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_27.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_28.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_29.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_30.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_31.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_32.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_33.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_34.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_35.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_0.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_1.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_2.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_3.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_4.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_5.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_6.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_7.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_8.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_9.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_10.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_11.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_12.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_13.png">
+      <Filter>資源檔</Filter>
+    </Image>
+    <Image Include="..\data\pictures\_14.png">
+      <Filter>資源檔</Filter>
+    </Image>
   </ItemGroup>
 </Project>
