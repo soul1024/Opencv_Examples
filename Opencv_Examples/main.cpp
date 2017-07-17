@@ -3,6 +3,7 @@
 #include "main.h"
 using namespace cv;
 using namespace cv::ml;
+using namespace xfeatures2d;
 using namespace std;
 
 
@@ -27,6 +28,7 @@ const int ImageSize = sizex * sizey;
 char pathToImages[] = "../data/pictures";
 
 //excercises
+void Fece_Count();
 void Face_detectAndDisplay();
 void Plate_dectecAndDisplay();
 void Face_detectAndDisplay_thirdpart();
@@ -67,16 +69,17 @@ int main() {
 
 	//Bgfg_segm();
 	//AutoRegister();
-	//Sift();
+	//Face_detectAndDisplay();
+	Sift();
 	//ConnectedComponent();
-	Plate_dectecAndDisplay();
+	//Plate_dectecAndDisplay();
 	return 0;
 }
 
-void Face_detectAndDisplay()
+void Fece_Count()
 {
 	VideoCapture cap(0);             //開啟攝影機
-	if (!cap.isOpened()) return ;   //確認攝影機打開
+	if (!cap.isOpened()) return;   //確認攝影機打開
 	Mat frame;                       //用矩陣紀錄抓取的每張frame
 	while (true)
 	{
@@ -133,6 +136,163 @@ void Face_detectAndDisplay()
 				text = "人數:" + text;
 				putText(frame, text, Point(0, 15), CV_FONT_ITALIC, 2.0, Scalar(0, 0, 255), 2);
 			}
+		}
+		imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
+		if (waitKey(30) == 27) break;  //按鍵就離開程式
+	}
+}
+void Face_detectAndDisplay()
+{
+	VideoCapture cap(0);             //開啟攝影機
+	if (!cap.isOpened()) return ;   //確認攝影機打開
+	//訓練好樣板
+	Mat img_template, img = imread("../data/pictures/man_template.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	if (!img.data)                                                    //如果數據為空
+	{
+		std::cout << " --(!) Error reading images " << std::endl; return;
+	}
+	GaussianBlur(img, img, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	vector<Rect> _faces;
+	vector<Rect> _eyes;
+	face_cascade.detectMultiScale(img, _faces, 1.1, 2, 0, Size(30, 30));
+	for (int l = 0; l < _faces.size(); l++) {
+		Mat _faceROI = img(_faces[l]);
+		eyes_cascade.detectMultiScale(_faceROI, _eyes, 1.1, 2, 0, Size(30, 30));
+		if (_eyes.size() > 0 && _eyes.size() <= 2) {
+			img_template = _faceROI;
+			break;
+		}
+	}
+
+	Mat frame;                       //用矩陣紀錄抓取的每張frame
+	while (true)
+	{
+		cap >> frame;
+		vector<Rect>faces;
+		//vector<Rect>heads;
+		//GaussianBlur(frame, frame, Size(3, 3), 0, 0, BORDER_DEFAULT);
+		
+
+		Mat frame_gray;
+		cvtColor(frame, frame_gray, CV_BGR2GRAY);
+		equalizeHist(frame_gray, frame_gray);
+		/*Mat laplacianImg;
+		Mat abs_dst;
+		Laplacian(frame_gray, laplacianImg, CV_32F, 3, 0.5, 128, BORDER_DEFAULT);
+		frame_gray.convertTo(frame_gray, CV_32F);
+		abs_dst = frame_gray - laplacianImg;
+		laplacianImg.convertTo(laplacianImg, CV_8U);
+		abs_dst.convertTo(abs_dst, CV_8U);*/
+		//convertScaleAbs(laplacianImg, laplacianImg);
+		//convertScaleAbs(abs_dst, abs_dst);
+		face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0, Size(30, 30));
+		/*imshow("Laplacian", laplacianImg);
+		imshow("abs", abs_dst);
+		waitKey();*/
+		for (int i = 0; i<faces.size(); i++)
+		{
+			//Point center(faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5);
+			//ellipse(frame, center, Size(faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
+			Mat faceROI = frame_gray(faces[i]);
+			std::vector<Rect> eyes;
+			//-- In each face, detect eyes
+			eyes_cascade.detectMultiScale(faceROI, eyes, 1.1, 2, 0, Size(30, 30));
+			if (eyes.size() > 0 && eyes.size() <= 2) {
+				
+
+				//-- Step 1: Detect the keypoints using SURF Detector     //第一步，用SIFT算子檢測關鍵點
+				int minHessian = 400;
+
+
+				Ptr<FeatureDetector> detector = FastFeatureDetector::create(15);
+				//SurfFeatureDetector detector(minHessian);
+				std::vector<KeyPoint> keypoints_1, keypoints_2;
+
+				detector->detect(faceROI, keypoints_1);
+				detector->detect(img_template, keypoints_2);
+
+				//-- Draw keypoints  //在圖像中畫出特徵點
+				Mat img_keypoints_1; Mat img_keypoints_2;
+
+				drawKeypoints(faceROI, keypoints_1, img_keypoints_1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+				drawKeypoints(img_template, keypoints_2, img_keypoints_2, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+
+				//-- Show detected (drawn) keypoints
+				imshow("gray", frame_gray);
+				imshow("Keypoints 1", img_keypoints_1);
+				imshow("Keypoints 2", img_keypoints_2);
+
+				//計算特徵
+				Ptr<SURF> extractor = SURF::create(minHessian);
+				//SurfDescriptorExtractor extractor;//定義對象
+
+				Mat descriptors_1, descriptors_2;//存放特徵向量的舉陣
+
+				extractor->compute(faceROI, keypoints_1, descriptors_1);//計算特徵向量
+				extractor->compute(img_template, keypoints_2, descriptors_2);
+
+				//-- Step 3: Matching descriptor vectors with a brute force matcher
+				BFMatcher matcher(NORM_L2);
+				std::vector< DMatch > matches;
+				matcher.match(descriptors_1, descriptors_2, matches);
+
+				//-- Draw matches
+				Mat img_matches;
+				drawMatches(faceROI, keypoints_1, img_template, keypoints_2, matches, img_matches);
+
+				//-- Step 3: Matching descriptor vectors using FLANN matcher
+				cv::FlannBasedMatcher matcher2;
+				std::vector< DMatch > matches2;
+				matcher2.match(descriptors_1, descriptors_2, matches2);
+
+				double max_dist = 0; double min_dist = 100;
+
+				//-- Quick calculation of max and min distances between keypoints
+				for (int i = 0; i < descriptors_1.rows; i++)
+				{
+					double dist = matches[i].distance;
+					if (dist < min_dist) min_dist = dist;
+					if (dist > max_dist) max_dist = dist;
+				}
+
+				printf("-- Max dist : %f \n", max_dist);
+				printf("-- Min dist : %f \n", min_dist);
+
+				//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist )
+				//-- PS.- radiusMatch can also be used here.
+				std::vector< DMatch > good_matches;
+
+				for (int i = 0; i < descriptors_1.rows; i++)
+				{
+					if (matches[i].distance < 2 * min_dist)
+					{
+						good_matches.push_back(matches[i]);
+					}
+				}
+				// 找到特定人臉
+				if (good_matches.size() > descriptors_2.rows / 3) {
+					//-- Draw only "good" matches
+					Mat img_matches2;
+					drawMatches(faceROI, keypoints_1, img_template, keypoints_2,
+						good_matches, img_matches2, Scalar::all(-1), Scalar::all(-1),
+						vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+
+					//
+					Point center(faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5);
+					ellipse(frame, center, Size(faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
+					//-- Show detected matches  
+					imshow("Good Matches", img_matches2);
+					imshow(window_name, frame);
+					waitKey(0);
+
+				}
+			}
+			/*for (int j = 0; j < eyes.size(); j++)
+			{
+				Point center(faces[i].x + eyes[j].x + eyes[j].width*0.5, faces[i].y + eyes[j].y + eyes[j].height*0.5);
+				int radius = cvRound((eyes[j].width + eyes[j].height)*0.25);
+				circle(frame, center, radius, Scalar(255, 0, 0), 4, 8, 0);
+			}*/
 		}
 		imshow(window_name, frame);                //建立一個視窗,顯示frame到camera名稱的視窗
 		if (waitKey(30) == 27) break;  //按鍵就離開程式
@@ -493,56 +653,124 @@ void AutoRegister()
 
 void Sift()
 {
-	//Mat img_1 = imread("../data/pictures/noodle.jpg", CV_LOAD_IMAGE_GRAYSCALE);
-	//Mat img_2 = imread("../data/pictures/noodle2.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat img_1 = imread("../data/pictures/noodle.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat img_2 = imread("../data/pictures/noodle3.jpg", CV_LOAD_IMAGE_GRAYSCALE);
 
-	//if (!img_1.data || !img_2.data)                                                    //如果數據為空
-	//{
-	//	std::cout << " --(!) Error reading images " << std::endl; return ;
-	//}
+	if (!img_1.data || !img_2.data)                                                    //如果數據為空
+	{
+		std::cout << " --(!) Error reading images " << std::endl; return ;
+	}
 
 
 
-	////-- Step 1: Detect the keypoints using SURF Detector     //第一步，用SIFT算子檢測關鍵點
-	//int minHessian = 400;
+	//-- Step 1: Detect the keypoints using SURF Detector     //第一步，用SIFT算子檢測關鍵點
+	int minHessian = 400;
 
-	//Ptr<Feature2D> Surf;
-	//Surf = SUR
+	
+	Ptr<FeatureDetector> detector = FastFeatureDetector::create(15);
 	//SurfFeatureDetector detector(minHessian);
-	//std::vector<KeyPoint> keypoints_1, keypoints_2;
+	std::vector<KeyPoint> keypoints_1, keypoints_2;
 
-	//detector.detect(img_1, keypoints_1);
-	//detector.detect(img_2, keypoints_2);
+	detector->detect(img_1, keypoints_1);
+	detector->detect(img_2, keypoints_2);
 
-	////-- Draw keypoints  //在圖像中畫出特徵點
-	//Mat img_keypoints_1; Mat img_keypoints_2;
+	//-- Draw keypoints  //在圖像中畫出特徵點
+	Mat img_keypoints_1; Mat img_keypoints_2;
 
-	//drawKeypoints(img_1, keypoints_1, img_keypoints_1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
-	//drawKeypoints(img_2, keypoints_2, img_keypoints_2, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	drawKeypoints(img_1, keypoints_1, img_keypoints_1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	drawKeypoints(img_2, keypoints_2, img_keypoints_2, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
 
-	////-- Show detected (drawn) keypoints
-	//imshow("Keypoints 1", img_keypoints_1);
-	//imshow("Keypoints 2", img_keypoints_2);
+	//-- Show detected (drawn) keypoints
+	imshow("Keypoints 1", img_keypoints_1);
+	imshow("Keypoints 2", img_keypoints_2);
 
-	////計算特徵
+	//計算特徵
+	Ptr<SURF> extractor = SURF::create(minHessian);
 	//SurfDescriptorExtractor extractor;//定義對象
 
-	//Mat descriptors_1, descriptors_2;//存放特徵向量的舉陣
+	Mat descriptors_1, descriptors_2;//存放特徵向量的舉陣
 
-	//extractor.compute(img_1, keypoints_1, descriptors_1);//計算特徵向量
-	//extractor.compute(img_2, keypoints_2, descriptors_2);
+	extractor->compute(img_1, keypoints_1, descriptors_1);//計算特徵向量
+	extractor->compute(img_2, keypoints_2, descriptors_2);
 
-	////-- Step 3: Matching descriptor vectors with a brute force matcher
-	//BFMatcher matcher(NORM_L2);
-	//std::vector< DMatch > matches;
-	//matcher.match(descriptors_1, descriptors_2, matches);
+	//-- Step 3: Matching descriptor vectors with a brute force matcher
+	BFMatcher matcher(NORM_L2);
+	std::vector< DMatch > matches;
+	matcher.match(descriptors_1, descriptors_2, matches);
 
-	////-- Draw matches
-	//Mat img_matches;
-	//drawMatches(img_1, keypoints_1, img_2, keypoints_2, matches, img_matches);
+	//-- Draw matches
+	Mat img_matches;
+	drawMatches(img_1, keypoints_1, img_2, keypoints_2, matches, img_matches);
 
-	////-- Show detected matches
-	//imshow("Matches", img_matches);
+	//-- Step 3: Matching descriptor vectors using FLANN matcher
+	cv::FlannBasedMatcher matcher2;
+	std::vector< DMatch > matches2;
+	matcher2.match(descriptors_1, descriptors_2, matches2);
+
+	double max_dist = 0; double min_dist = 100;
+
+	//-- Quick calculation of max and min distances between keypoints
+	for (int i = 0; i < descriptors_1.rows; i++)
+	{
+		double dist = matches2[i].distance;
+		if (dist < min_dist) min_dist = dist;
+		if (dist > max_dist) max_dist = dist;
+	}
+
+	printf("-- Max dist : %f \n", max_dist);
+	printf("-- Min dist : %f \n", min_dist);
+
+	//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist )
+	//-- PS.- radiusMatch can also be used here.
+	std::vector< DMatch > good_matches;
+
+	for (int i = 0; i < descriptors_1.rows; i++)
+	{
+		if (matches2[i].distance <= 3 * min_dist)
+		{
+			good_matches.push_back(matches2[i]);
+		}
+	}
+
+	//-- Localize the object
+	std::vector<Point2f> obj;
+	std::vector<Point2f> scene;
+
+	for (int i = 0; i < good_matches.size(); i++)
+	{
+		//-- Get the keypoints from the good matches
+		obj.push_back(keypoints_1[good_matches[i].queryIdx].pt);
+		scene.push_back(keypoints_2[good_matches[i].trainIdx].pt);
+	}
+
+	Mat H = findHomography(obj, scene, CV_RANSAC);
+
+	//-- Get the corners from the image_1 ( the object to be "detected" )
+	std::vector<Point2f> obj_corners(4);
+	obj_corners[0] = cvPoint(0, 0); obj_corners[1] = cvPoint(img_1.cols, 0);
+	obj_corners[2] = cvPoint(img_1.cols, img_1.rows); obj_corners[3] = cvPoint(0, img_1.rows);
+	std::vector<Point2f> scene_corners(4);
+
+	perspectiveTransform(obj_corners, scene_corners, H);	
+
+
+	//-- Draw only "good" matches
+	//Mat img_matches2;
+	drawMatches(img_1, keypoints_1, img_2, keypoints_2,
+		good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
+		vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+
+	//-- Draw lines between the corners (the mapped object in the scene - image_2 )
+	line(img_matches, scene_corners[0] + Point2f(img_1.cols, 0), scene_corners[1] + Point2f(img_1.cols, 0), Scalar(0, 255, 0), 4);
+	line(img_matches, scene_corners[1] + Point2f(img_1.cols, 0), scene_corners[2] + Point2f(img_1.cols, 0), Scalar(0, 255, 0), 4);
+	line(img_matches, scene_corners[2] + Point2f(img_1.cols, 0), scene_corners[3] + Point2f(img_1.cols, 0), Scalar(0, 255, 0), 4);
+	line(img_matches, scene_corners[3] + Point2f(img_1.cols, 0), scene_corners[0] + Point2f(img_1.cols, 0), Scalar(0, 255, 0), 4);
+
+	//-- Show detected matches  
+	imshow("Good Matches", img_matches);
+
+
+	waitKey(0);
 }
 
 void Bgfg_segm()
@@ -730,6 +958,9 @@ void AnalyseImage(Ptr<KNearest> knearest, Mat image)
 
 	cv::cvtColor(image, gray, COLOR_BGR2GRAY);
 	GaussianBlur(gray, blur, Size(5, 5), 2, 2);
+	Laplacian(blur, thresh, CV_8U);
+	imshow("thresh", thresh);
+	waitKey();
 	adaptiveThreshold(blur, thresh, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 11, 0);
 	// calhist
 	/*int HistogramBins = 2;

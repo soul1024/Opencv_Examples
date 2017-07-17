@@ -189,5 +189,8 @@
     <Image Include="..\data\pictures\_14.png">
       <Filter>資源檔</Filter>
     </Image>
+    <Image Include="..\data\pictures\man_template.jpg">
+      <Filter>資源檔</Filter>
+    </Image>
   </ItemGroup>
 </Project>
