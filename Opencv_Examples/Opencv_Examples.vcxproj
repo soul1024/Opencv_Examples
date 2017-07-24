@@ -152,9 +152,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ImageProcessor.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ImageProcessor.h" />
     <ClInclude Include="main.h" />
   </ItemGroup>
   <ItemGroup>
