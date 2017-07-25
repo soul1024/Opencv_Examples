@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <vector>
 #include "main.h"
+#include "ImageProcessor.h"
 using namespace cv;
 using namespace cv::ml;
 using namespace xfeatures2d;
@@ -108,7 +109,23 @@ void AnalyseImage_SCW(Ptr<KNearest> knearest, Mat frame);
 
 int main() {
 
-	if (!face_cascade.load(face_cascade_name))
+	Mat ImagePeople = imread("../data/pictures/people/people.jpg", CV_LOAD_IMAGE_COLOR);
+	Mat ImagePeople2 = imread("../data/pictures/people/people2.jpg", CV_LOAD_IMAGE_COLOR);
+	Mat ImagePeople3 = imread("../data/pictures/people/people3.jpg", CV_LOAD_IMAGE_COLOR);
+	Mat ImagePlate = imread("../data/pictures/plate/plate1.jpg", CV_LOAD_IMAGE_COLOR);
+	Mat ImageFaceObject = imread("../data/pictures/man_template.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat ImageFaceBackground = imread("../data/pictures/man2.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	ImageProcess imgProcessor;
+	
+	cout << "../data/pictures/people/people.jpg" << ", 人數: " << imgProcessor.Count_People_Num(ImagePeople) << endl;
+	cout << "../data/pictures/people/people2.jpg" << ", 人數: " << imgProcessor.Count_Face_Num(ImagePeople3) << endl;
+	cout << "../data/pictures/people/people.jpg" << ", 車牌號碼: " << imgProcessor.Plate_Detect(ImagePlate) << endl;
+	char* faceRecognitionResult = imgProcessor.Face_Recognition(ImageFaceObject, ImageFaceBackground) ? "存在" : "不存在";
+	cout << "../data/pictures/people/people.jpg" << ", 人臉偵測: " << faceRecognitionResult << endl;
+	
+
+
+	/*if (!face_cascade.load(face_cascade_name))
 	{
 		printf("--(!)Error loading\n");
 		return -1;
@@ -142,10 +159,10 @@ int main() {
 	{
 		printf("--(!)Error loading\n");
 		return -1;
-	}
+	}*/
 	//namedWindow("img", WINDOW_AUTOSIZE);
 
-	Fece_Count();
+	//Fece_Count();
 	//Bgfg_segm();
 	//AutoRegister();
 	//Face_detectAndDisplay();
