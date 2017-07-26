@@ -2,7 +2,7 @@
 
 ImageProcess::ImageProcess()
 {
-	bFirstFrame = true;
+	bFirst_Inva = true;
 	pathToImages = "../data/pictures";
 	if (!face_cascade.load(FACE_CASCADE_NAME))
 	{
@@ -303,10 +303,39 @@ String ImageProcess::AnalyseImage(Ptr<KNearest> knearest, Mat image)
 			}
 		}
 	}
+	//進一步濾掉上下差太多的
+	if (workRects.size() > 0) {
+		vector<int> vecRemoveIndices;
+		vector<Rect> cluster_1, cluster_2, cluster_3;
+		
+		//找分類基準點
+		int min = 1e9;
+		int threshold = 0;
+		for (int i = 0; i < workRects.size(); i++)
+		{
+			int dis = abs(workRects[i].y - (resized.rows / 3));
+			if (dis < min)
+			{
+				min = dis;
+				threshold = workRects[i].y;
+			}
+		}
+		Rect rectThreshold = workRects[0];
+		int tolerence = 2;
+		
+		for (int i = 0; i < workRects.size(); i++)
+		{
+			if (workRects[i].y > threshold + tolerence) cluster_1.push_back(workRects[i]);
+			else if (workRects[i].y < threshold - tolerence) cluster_3.push_back(workRects[i]);
+			else cluster_2.push_back(workRects[i]);
+		}
 
+		workRects = cluster_1.size() > cluster_2.size() ? (cluster_1.size() > cluster_3.size() ? cluster_1 : cluster_3) : (cluster_2.size() > cluster_3.size() ? cluster_2 : cluster_3);
 
+	}
+	
 
-	bool bWordFirst = true;
+	
 	for (size_t i = 0; i < workRects.size(); i++)
 	{
 		Rect rec = workRects[i];
@@ -328,64 +357,69 @@ String ImageProcess::AnalyseImage(Ptr<KNearest> knearest, Mat image)
 			Scalar(0, 0, 255), 2);
 
 		//imshow("all", image);
-		//語意分析
-		char c;
 		if (result >= 10)
 		{
-			if (i == 0) bWordFirst = true;
 			result += 55;
 		}
 		else {
-			if (i == 0) bWordFirst = false;
 			result += 48;
 		}
-		//
-		if (result == 68 || result == 79 || result == 85)
-		{
-			if (bWordFirst && i > 2) {
-				result = 48; //數字0
-			}
-			else if (!bWordFirst && i < 4) {
-				result = 48;
-			}
-		}
-		cout << (char)result << " ";
+		//cout << (char)result << " ";
+		imshow("single", stagedImage);
+		waitKey(0);
 		strRet += (char)result;
-		//imshow("single", stagedImage);
-		//waitKey(0);
+		
 	}
-	//for (size_t i = 0; i < contours.size(); i++)
-	//{
-	//	vector < Point > cnt = contours[i];
-	//	if (contourArea(cnt) > 50)
-	//	{
-	//		Rect rec = boundingRect(cnt);
-	//		if (rec.height > 28)
-	//		{
-	//			Mat roi = image(rec);
-	//			Mat stagedImage;
-	//			PreProcessImage(&roi, &stagedImage, sizex, sizey);
-	//			for (int n = 0; n < ImageSize; n++)
-	//			{
-	//				sample2.at<float>(n) = stagedImage.data[n];
-	//			}
-	//			Mat matResults(0, 0, CV_32FC1);
-	//			float result = knearest->findNearest(sample2, knearest->getDefaultK(), matResults);
-	//			rectangle(image, Point(rec.x, rec.y),
-	//				Point(rec.x + rec.width, rec.y + rec.height),
-	//				Scalar(0, 0, 255), 2);
+	//語意分析
+	//先找出英文開頭或是數字開頭，如果前後一樣表示誤判，要看本身誰優先度大
+	bool bWordFirst = true;
+	int bound = strRet.size() - 1;
+	if (strRet[0] <= 57 && strRet[bound] > 57) bWordFirst = false;
+	else if (strRet[0] > 57 && strRet[bound] <= 57) bWordFirst = true;
+	else if ((strRet[0] > 57 && strRet[bound] > 57) || (strRet[0] <= 57 && strRet[bound] <= 57))
+	{
+		//比較優先度
+		
+		if (strRet[0] <= 57)//都是數字
+		{
+			int numBegin = strRet[0] - 48;
+			int numEnd = strRet[0] - 48;
+			if (numBegin == 0 || numBegin == 1 || numBegin == 2 || numBegin == 8) bWordFirst = true;
+			else bWordFirst = false;
+		}
+		else//都是英文
+		{
+			if (strRet[0] == 66 || strRet[0] == 68 || strRet[0] == 79 || strRet[0] == 81) bWordFirst = false;
+			else bWordFirst = true;
+		}
+	}
+	//字串處理
+	string temp = strRet.c_str();
+	if (bWordFirst) {
+		for (int i = 3; i < strRet.size(); i++)
+		{			
+			char word = strRet[i];
+			if (word == 68 || word == 79 || word == 85)
+			{
+				temp[i] = '0';
+			}
+			if (word == 66) temp[i] = '8';
+		}		
+	}
+	else
+	{
+		for (int i = 0; i < 4; i++)
+		{		
+			char word = strRet[i];
+			if (word == 68 || word == 79 || word == 85)
+			{
+				temp[i] = '0';
+			}
+			if (word == 66) temp[i] = '8';
+		}
+	}
+	strRet = temp;
 
-	//			//imshow("all", image);
-	//			cout << result << " ";
-
-	//			//imshow("single", stagedImage);
-	//			//waitKey(0);
-	//		}
-
-	//	}
-	//	
-	//}
-	//cout << "\n";
 	imshow("all", resized);
 	waitKey(0);
 	return strRet;
@@ -491,7 +525,7 @@ int ImageProcess::Count_Face_Num(Mat frame)
 	cvtColor(img_resized, frame_gray, CV_BGR2GRAY);
 	equalizeHist(frame_gray, frame_gray);
 
-	face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0, Size(30, 30));
+	face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0, Size(50, 50));
 	for (int i = 0; i < faces.size(); i++)
 	{
 		rectangle(img_resized, faces[i], Scalar(0, 0, 255), 2);
@@ -500,41 +534,40 @@ int ImageProcess::Count_Face_Num(Mat frame)
 	waitKey();
 	return (int)faces.size();
 }
+void ImageProcess::Invasion_Begin(Mat frame) {
+	gray_Inva = Mat(frame.size(), CV_8UC1);
+	Foreground_Inva = Mat(frame.size(), CV_8UC1);
+	Background_Inva = Mat(frame.size(), CV_8UC1);
+
+	gray32f_Inva = Mat(frame.size(), CV_32FC1);
+	Foreground32f_Inva = Mat(frame.size(), CV_32FC1);
+	Background32f_Inva = Mat(frame.size(), CV_32FC1);
+	cvtColor(frame, gray_Inva, COLOR_BGR2GRAY);
+	gray_Inva.convertTo(Background32f_Inva, CV_32F);
+}
 bool ImageProcess::Invasion_Detect(Mat frame)
 {
-	bool bRet = false;
-	Mat gray(frame.size(), CV_8UC1);
-	Mat Foreground(frame.size(), CV_8UC1);
-	Mat Background(frame.size(), CV_8UC1);
+	bool bRet = false;	
 
-	Mat gray32f(frame.size(), CV_32FC1);
-	Mat Foreground32f(frame.size(), CV_32FC1);
-	Mat Background32f(frame.size(), CV_32FC1);
+	cvtColor(frame, gray_Inva, COLOR_BGR2GRAY);
+	imshow("foreground", gray_Inva);
 
-	if (bFirstFrame) {
-		cvtColor(frame, gray, COLOR_BGR2GRAY);
-		gray.convertTo(Background32f, CV_32F);
-	}
+	gray_Inva.convertTo(gray32f_Inva, CV_32F);
 
-	cvtColor(frame, gray, COLOR_BGR2GRAY);
-	imshow("foreground", gray);
-
-	gray.convertTo(gray32f, CV_32F);
-
-	absdiff(gray32f, Background32f, Foreground32f);
-	threshold(Foreground32f, Foreground, 30, 255, THRESH_BINARY);
-	accumulateWeighted(gray32f, Background32f, 0.09);
-	float flmean = mean(Foreground)[0];
+	absdiff(gray32f_Inva, Background32f_Inva, Foreground32f_Inva);
+	threshold(Foreground32f_Inva, Foreground_Inva, 30, 255, THRESH_BINARY);
+	accumulateWeighted(gray32f_Inva, Background32f_Inva, 0.09);
+	float flmean = mean(Foreground_Inva)[0];
 	if (flmean > 128)
 	{
 		bRet = true;
-		putText(Foreground, "WARNING", Point(Foreground.cols / 2, Foreground.rows / 2), CV_FONT_ITALIC, 1, Scalar(0, 0, 255));
+		putText(Foreground_Inva, "WARNING", Point(Foreground_Inva.cols / 2, Foreground_Inva.rows / 2), CV_FONT_ITALIC, 1, Scalar(0, 0, 255));
 	}
 
-	Background32f.convertTo(Background, CV_8U);
+	Background32f_Inva.convertTo(Background_Inva, CV_8U);
 
-	imshow("background", Background);
-	imshow("Binary Result", Foreground);	
+	imshow("background", Background_Inva);
+	imshow("Binary Result", Foreground_Inva);
 
 	return bRet;
 }
@@ -555,7 +588,7 @@ String ImageProcess::Plate_Detect(Mat frame)
 	Ptr<KNearest> kclassifier = KNearest::create();
 
 	trainingData = TrainData::create(matTrainFeatures,
-		SampleTypes::ROW_SAMPLE, matTrainLabels);
+	SampleTypes::ROW_SAMPLE, matTrainLabels);
 	kclassifier->setIsClassifier(true);
 	kclassifier->setAlgorithmType(KNearest::Types::BRUTE_FORCE);
 	kclassifier->setDefaultK(1);

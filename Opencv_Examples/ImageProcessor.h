@@ -29,9 +29,17 @@ public:
 	ImageProcess();
 	~ImageProcess();
 private:
-	bool bFirstFrame;
-protected:
 	
+	//for Invasion
+	bool bFirst_Inva;
+	Mat gray_Inva;
+	Mat Foreground_Inva;
+	Mat Background_Inva;
+
+	Mat gray32f_Inva;
+	Mat Foreground32f_Inva;
+	Mat Background32f_Inva;
+protected:	
 	CascadeClassifier face_cascade;
 	CascadeClassifier faceside_cascade;
 	CascadeClassifier bodyupper_cascade;
@@ -60,6 +68,8 @@ public:
 	int Count_People_Num(Mat frame);
 	//數人頭(抓正面)
 	int Count_Face_Num(Mat frame);
+	//入侵偵測先Invasion_Begin->Invasion_Detect
+	void Invasion_Begin(Mat frame);
 	//要連續餵圖，偵測到入侵時回傳true，否則false
 	bool Invasion_Detect(Mat frame);
 	//偵測車牌

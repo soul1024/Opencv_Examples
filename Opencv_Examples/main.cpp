@@ -110,18 +110,28 @@ void AnalyseImage_SCW(Ptr<KNearest> knearest, Mat frame);
 int main() {
 
 	Mat ImagePeople = imread("../data/pictures/people/people.jpg", CV_LOAD_IMAGE_COLOR);
-	Mat ImagePeople2 = imread("../data/pictures/people/people2.jpg", CV_LOAD_IMAGE_COLOR);
-	Mat ImagePeople3 = imread("../data/pictures/people/people3.jpg", CV_LOAD_IMAGE_COLOR);
-	Mat ImagePlate = imread("../data/pictures/plate/plate1.jpg", CV_LOAD_IMAGE_COLOR);
+	Mat ImagePeopleFace = imread("../data/pictures/people/face.jpg", CV_LOAD_IMAGE_COLOR);
+	Mat ImagePlate = imread("../data/pictures/plate/plate.jpg", CV_LOAD_IMAGE_COLOR);
 	Mat ImageFaceObject = imread("../data/pictures/man_template.jpg", CV_LOAD_IMAGE_GRAYSCALE);
 	Mat ImageFaceBackground = imread("../data/pictures/man2.jpg", CV_LOAD_IMAGE_GRAYSCALE);
 	ImageProcess imgProcessor;
 	
-	cout << "../data/pictures/people/people.jpg" << ", 人數: " << imgProcessor.Count_People_Num(ImagePeople) << endl;
-	cout << "../data/pictures/people/people2.jpg" << ", 人數: " << imgProcessor.Count_Face_Num(ImagePeople3) << endl;
+	//cout << "../data/pictures/people/people.jpg" << ", 人數: " << imgProcessor.Count_People_Num(ImagePeople) << endl;
+	//cout << "../data/pictures/people/people2.jpg" << ", 人數: " << imgProcessor.Count_Face_Num(ImagePeopleFace) << endl;
 	cout << "../data/pictures/people/people.jpg" << ", 車牌號碼: " << imgProcessor.Plate_Detect(ImagePlate) << endl;
-	char* faceRecognitionResult = imgProcessor.Face_Recognition(ImageFaceObject, ImageFaceBackground) ? "存在" : "不存在";
-	cout << "../data/pictures/people/people.jpg" << ", 人臉偵測: " << faceRecognitionResult << endl;
+	//char* faceRecognitionResult = imgProcessor.Face_Recognition(ImageFaceObject, ImageFaceBackground) ? "存在" : "不存在";
+	//cout << "../data/pictures/people/people.jpg" << ", 人臉偵測: " << faceRecognitionResult << endl;
+
+	//VideoCapture cap(0);
+	//Mat frame;
+	//cap >> frame;
+	//imgProcessor.Invasion_Begin(frame);
+	//while (true) {
+	//	cap >> frame;
+	//	char *ans = imgProcessor.Invasion_Detect(frame) ? "有異物入侵!!" : "未入侵";
+	//	cout << "入侵偵測:" << ans << endl;
+	//	if (waitKey(100) == 27) break;
+	//}
 	
 
 
